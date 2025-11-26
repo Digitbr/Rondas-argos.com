@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#2b6cb0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <title>Dashboard — Auditorias</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body{font-family:Inter, system-ui, Arial; margin:0; padding:14px; background:linear-gradient(180deg,#f8fafc,#ffffff);}
+    .container{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 420px;gap:18px;align-items:start}
+    .card{background:white;padding:16px;border-radius:10px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
+    h1{margin:0 0 12px 0}
+    #chartWrap{height:360px}
+    #map{height:600px;border-radius:8px}
+    /* Android / touch-friendly tweaks */
+    button, .btn { touch-action: manipulation; -webkit-tap-highlight-color: rgba(0,0,0,0.08); }
+    .btn { padding: .8rem 1rem; font-size: 1rem; border-radius: 8px; }
+    .card { padding: 1rem; border-radius: 10px; background: #fff; box-shadow: 0 6px 18px rgba(20,30,40,0.06); }
+    /* Dashboard side menu */
+    #dashMenuBtn { position: fixed; left: 12px; top: 12px; z-index: 1200; }
+    #dashSide { position: fixed; left: -280px; top: 0; width: 280px; height: 100%; background:#fff; box-shadow: 2px 0 24px rgba(0,0,0,0.08); transition: left .28s ease; z-index:1199; padding: 1rem; }
+    #dashSide.open { left: 0; }
+    #dashSide a { display:block; padding:.7rem .5rem; color:#233; border-radius:6px; margin-bottom:6px; text-decoration:none; }
+    #dashSide a:hover { background: #f1f7ff; }
+    #rankingList { margin-top:.5rem; }
+    .ranking-item { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:.5rem .75rem; border-radius:8px; background:#fff; border:1px solid #eef3f8; margin-bottom:8px; }
+    .ranking-left { display:flex;flex-direction:column; gap:6px; flex:1 }
+    .ranking-name{font-weight:600;color:#0f172a}
+    .ranking-bar{height:10px;background:#e6f0ff;border-radius:6px;overflow:hidden}
+    .ranking-bar > i{display:block;height:100%;background:#2563eb;border-radius:6px}
+    .ranking-count{min-width:54px;text-align:right;font-weight:700;color:#0b63d1}
+    /* Topbar */
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:#ffffff;border-radius:10px;margin-bottom:12px;box-shadow:0 6px 20px rgba(2,6,23,0.06)}
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand .logo{font-size:1.3rem}
+    .brand .title{font-weight:700;font-size:1.05rem;color:#073763}
+    .btn-primary{background:#0b63d1;color:#fff;border-radius:8px;padding:8px 12px;border:none;cursor:pointer}
+    .controls{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+    .small{color:#6b7280;font-size:0.95rem}
+    @media(max-width:900px){.container{grid-template-columns:1fr;}.card{padding:12px}}
+  </style>
+</head>
+<body>
+  
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">⛽</div>
+      <div class="title">Argos — Auditorias de Postos</div>
+    </div>
+    <div class="top-actions">
+      <button class="btn-primary" onclick="window.location.href='rondas%20argos.html'">📋 Formulário</button>
+      <button class="btn-primary" onclick="window.location.href='registros.html'">📋 Registros</button>
+      <button class="btn-ghost" onclick="exportAllPdf()">⬇️ Exportar</button>
+    </div>
+  </div>
+
+  <h1>Dashboard — Gráficos e Mapa</h1>
+  <div class="container">
+    <div class="card">
+      <div class="controls">
+        <button id="backBtn">← Voltar</button>
+        <button id="refresh">Atualizar</button>
+        <button id="exportPdf">Exportar PDF</button>
+        <button id="exportLocations">Exportar Localizações (JSON)</button>
+        <button id="exportLocationsCsv">Exportar Localizações (CSV)</button>
+        <div class="small">Registros carregados: <span id="count">0</span></div>
+      </div>
+      <div id="chartWrap"><canvas id="turnosChart" style="width:100%;height:100%"></canvas></div>
+      <div style="margin-top:12px" id="legend"></div>
+    </div>
+
+    <div class="card">
+      <div style="margin-bottom:8px"><strong>Mapa de Supervisores</strong></div>
+      <div class="small">Marcadores mostram onde o registro foi criado; clique para ver horário e posto.</div>
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <section id="rankingSection" class="card" style="max-width:1200px;margin:18px auto;">
+    <h2>Ranking de Ocorrências por Posto</h2>
+    <div class="small">Lista dos postos com mais registros (todos os turnos). Use para identificar hotspots.</div>
+    <div id="rankingList" style="margin-top:10px"></div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button id="exportRankingJson" class="btn">Exportar Ranking (JSON)</button>
+      <button id="exportRankingCsv" class="btn">Exportar Ranking (CSV)</button>
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="postos.js"></script>
+  <script>
+    const storageKey = 'rondas_registros_v1';
+
+    function readStorage(){ try { return JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch { return []; }}
+
+    function updateChart(data){
+      const ctx = document.getElementById('turnosChart').getContext('2d');
+      const summary = data.reduce((acc, r)=>{
+        const t = r.turno || 'Dia';
+        acc[t] = (acc[t]||0)+1; return acc;
+      }, {});
+      const labels = Object.keys(summary);
+      const counts = labels.map(l=>summary[l]);
+      if(window.chart){ window.chart.data.labels = labels; window.chart.data.datasets[0].data = counts; window.chart.update(); }
+      else{
+        window.chart = new Chart(ctx,{
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Auditorias por Turno',
+              data: counts,
+              borderColor: '#2563eb',
+              backgroundColor: 'rgba(37,99,235,0.08)',
+              tension: 0.25,
+              fill: true,
+              pointRadius: 6,
+              pointBackgroundColor: '#60a5fa',
+              pointBorderColor: '#1e40af'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+            plugins: { legend: { display: false } }
+          }
+        });
+      }
+      document.getElementById('legend').innerHTML = labels.map((l,i)=>`<div style="display:inline-block;margin-right:8px;padding:6px 10px;background:#f1f5f9;border-radius:6px">${l}: <strong>${counts[i]}</strong></div>`).join('');
+    }
+
+    function makeColorFromString(str){ let h=0; for(let i=0;i<str.length;i++){ h = str.charCodeAt(i) + ((h<<5)-h);} const c = (h & 0x00FFFFFF).toString(16).toUpperCase(); return '#'+('00000'.substring(0,6-c.length)+c); }
+
+    function renderMap(records){
+      // Limitar e focar no Espírito Santo (bounding box aproximado)
+      const ES_BOUNDS = L.latLngBounds(L.latLng(-21.5, -41.9), L.latLng(-18.0, -39.0));
+      const ES_CENTER = [-19.3, -40.3];
+
+      const map = L.map('map', { maxBounds: ES_BOUNDS, minZoom: 6, maxZoom: 13, maxBoundsViscosity: 0.8 }).setView(ES_CENTER, 7);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
+
+      const groups = {};
+      records.forEach(r => {
+        if (!r.geo) return;
+        const s = r.supervisor || 'Desconhecido';
+        groups[s] = groups[s] || [];
+        groups[s].push(r);
+      });
+
+      Object.keys(groups).forEach(supervisor=>{
+        const items = groups[supervisor].sort((a,b)=> (a.geo?.ts||0)-(b.geo?.ts||0));
+        const color = makeColorFromString(supervisor).slice(0,7);
+        const latlngs = [];
+        items.forEach(it=>{
+          // ignorar pontos sem coordenada ou fora do ES
+          if (!it.geo) return;
+          const lat = it.geo.lat, lng = it.geo.lng;
+          if (!ES_BOUNDS.contains([lat, lng])) return;
+          const marker = L.circleMarker([lat, lng], { radius:8, color: color, fillColor: color, fillOpacity:0.9 }).addTo(map);
+          const when = new Date(it.geo.ts).toLocaleString();
+          const posto = it.posto?.nome || 'Sem identificação';
+          marker.bindPopup(`<strong>${escapeHtml(supervisor)}</strong><br/>Posto: ${escapeHtml(posto)}<br/>Data: ${escapeHtml(it.data||'')} ${escapeHtml(it.horaInicio||'')}<br/>Horário captura: ${when}`);
+          latlngs.push([lat, lng]);
+        });
+        if(latlngs.length>1){ L.polyline(latlngs, { color: color, weight:3, opacity:0.8 }).addTo(map); }
+      });
+
+      // ajustar bounds para os pontos válidos; se nenhum, centralizar no ES
+      const allCoords = records.filter(r=>r.geo && ES_BOUNDS.contains([r.geo.lat, r.geo.lng])).map(r=>[r.geo.lat, r.geo.lng]);
+      if(allCoords.length>0) map.fitBounds(allCoords, { padding:[40,40], maxZoom: 12 });
+      else map.setView(ES_CENTER, 7);
+    }
+
+    function escapeHtml(text){ if(!text) return ''; return String(text).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+
+    function refresh(){
+      const rec = readStorage();
+      document.getElementById('count').textContent = rec.length;
+      updateChart(rec);
+      document.getElementById('map').innerHTML='';
+      renderMap(rec);
+      // atualizar ranking ao recarregar
+      try{ if(typeof renderRanking === 'function'){ renderRanking(); } }catch(e){}
+    }
+
+    document.getElementById('refresh').addEventListener('click', refresh);
+    document.getElementById('exportPdf').addEventListener('click', ()=>{ exportAllPdf(); });
+
+    // Voltar ao formulário
+    document.getElementById('backBtn').addEventListener('click', ()=>{ window.location.href = 'rondas argos.html'; });
+
+    // Exportar apenas registros com geo (dentro do ES) como PDF
+    document.getElementById('exportLocations').addEventListener('click', ()=>{ exportLocationsPdf(); });
+
+    // Exportar localizações como PDF (mesma função que o botão de JSON)
+    document.getElementById('exportLocationsCsv').addEventListener('click', ()=>{ exportLocationsPdf(); });
+
+    // Funções de ranking
+    function computeRanking(){
+      const rec = readStorage();
+      const counts = {};
+      rec.forEach(r=>{
+        const posto = (r.posto && r.posto.nome) ? r.posto.nome : (r.postoName || 'Sem identificação');
+        counts[posto] = (counts[posto]||0) + 1;
+      });
+      return Object.entries(counts).map(([name,count])=>({ name, count })).sort((a,b)=>b.count-a.count);
+    }
+
+    function renderRanking(){
+      const arr = computeRanking();
+      const el = document.getElementById('rankingList');
+      if(!el) return;
+      if(arr.length === 0){ el.innerHTML = '<div class="small">Nenhum registro encontrado.</div>'; return; }
+      const max = Math.max(...arr.map(a=>a.count), 1);
+      el.innerHTML = arr.slice(0,50).map((it,idx)=>{
+        const pct = Math.round((it.count / max) * 100);
+        return `<div class="ranking-item"><div class="ranking-left"><div class="ranking-name">${idx+1}. ${escapeHtml(it.name)}</div><div class="ranking-bar"><i style="width:${pct}%"></i></div></div><div class="ranking-count">${it.count}</div></div>`;
+      }).join('');
+    }
+
+    document.getElementById('exportRankingJson').addEventListener('click', ()=>{ exportRankingPdf(); });
+    document.getElementById('exportRankingCsv').addEventListener('click', ()=>{ exportRankingPdf(); });
+
+    
+
+    // inicializa
+    refresh();
+  </script>
+</body>
+</html>

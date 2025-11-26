@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#033658">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="ronda.css" rel="stylesheet">
+    <title>App - Auditoria de Postos</title>
+    <style>
+      .logo {
+        position: absolute;
+        top: 70px;
+        left: 10px;
+        max-width: 120px;
+        height: auto;
+        z-index: 20;
+      }
+            
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  </head>
+  <body>
+    <!-- menus laterais removidos: left 'Navegar' e right 'Menu' -->
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">⛽</div>
+        <div class="title">Argos — Auditorias de Postos</div>
+      </div>
+      <div class="top-actions">
+        <button class="btn-primary" onclick="window.location.href='dashboard.html'">📊 Dashboard</button>
+        <button class="btn-primary" onclick="window.location.href='registros.html'">📋 Registros</button>
+        <button class="btn-ghost" onclick="exportAllPdf()">⬇️ Exportar</button>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="card">
+        <header>
+          <div>
+            <h1>🛡️ Formulário de Auditoria de Postos</h1>
+            <div class="small" style="margin-top:4px">App offline — dados salvos localmente</div>
+          </div>
+        </header>
+
+        <form id="rondaForm">
+          <!-- SEÇÃO: DADOS DA AUDITORIA -->
+          <div id="sec-dados" class="section-header">📋 Dados da Auditoria</div>
+          
+          <div class="row">
+            <div>
+              <label for="data">Data da Auditoria *</label>
+              <input id="data" type="date" name="data" required />
+            </div>
+            <div>
+              <label for="horaInicio">Hora Início</label>
+              <input id="horaInicio" type="time" name="horaInicio" />
+            </div>
+            <div>
+              <label for="horaFim">Hora Término</label>
+              <input id="horaFim" type="time" name="horaFim" />
+            </div>
+            <div>
+              <label for="turno">Turno</label>
+              <select id="turno" name="turno">
+                <option>Dia</option>
+                <option>Noite</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="auditor">Auditor / Responsável *</label>
+              <input id="auditor" type="text" name="auditor" placeholder="Nome do auditor" required />
+            </div>
+            <div>
+              <label for="matricula">Matrícula</label>
+              <input id="matricula" type="text" name="matricula" placeholder="Matrícula do auditor" />
+            </div>
+          </div>
+
+          <!-- SEÇÃO: DADOS DO POSTO -->
+          <div id="sec-identificacao" class="section-header">🏢 Identificação do Posto</div>
+          
+          <div class="row">
+            <div>
+              <label for="nomePosto">Nome do Posto / Unidade *</label>
+              <input id="nomePosto" type="text" name="nomePosto" placeholder="Ex: Posto Central" required />
+            </div>
+            <div>
+              <label for="codigoPosto">Código do Posto</label>
+              <input id="codigoPosto" type="text" name="codigoPosto" placeholder="Ex: PST-001" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="endereco">Endereço Completo</label>
+              <input id="endereco" type="text" name="endereco" placeholder="Rua, número, complemento" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="bairro">Bairro</label>
+              <input id="bairro" type="text" name="bairro" placeholder="Bairro" />
+            </div>
+            <div>
+              <label for="cidade">Cidade</label>
+              <input id="cidade" type="text" name="cidade" placeholder="Cidade" />
+            </div>
+            <div>
+              <label for="estado">Estado</label>
+              <select id="estado" name="estado">
+                <option value="">Selecione...</option>
+                <option value="AC">AC</option>
+                <option value="AL">AL</option>
+                <option value="AP">AP</option>
+                <option value="AM">AM</option>
+                <option value="BA">BA</option>
+                <option value="CE">CE</option>
+                <option value="DF">DF</option>
+                <option value="ES">ES</option>
+                <option value="GO">GO</option>
+                <option value="MA">MA</option>
+                <option value="MT">MT</option>
+                <option value="MS">MS</option>
+                <option value="MG">MG</option>
+                <option value="PA">PA</option>
+                <option value="PB">PB</option>
+                <option value="PR">PR</option>
+                <option value="PE">PE</option>
+                <option value="PI">PI</option>
+                <option value="RJ">RJ</option>
+                <option value="RN">RN</option>
+                <option value="RS">RS</option>
+                <option value="RO">RO</option>
+                <option value="RR">RR</option>
+                <option value="SC">SC</option>
+                <option value="SP">SP</option>
+                <option value="SE">SE</option>
+                <option value="TO">TO</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- SEÇÃO: RESPONSÁVEIS DO POSTO -->
+          <div id="sec-responsaveis" class="section-header">👥 Responsáveis do Posto</div>
+          
+          <div class="row">
+            <div>
+              <label for="responsavelPosto">Responsável pelo Posto</label>
+              <input id="responsavelPosto" type="text" name="responsavelPosto" placeholder="Nome do responsável" />
+            </div>
+            <div>
+              <label for="contatoResponsavel">Telefone / Contato</label>
+              <input id="contatoResponsavel" type="text" name="contatoResponsavel" placeholder="(00) 00000-0000" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="supervisorArea">Supervisor da Área</label>
+              <input id="supervisorArea" type="text" name="supervisorArea" placeholder="Nome do supervisor" />
+            </div>
+            <div>
+              <label for="quantidadeFuncionarios">Quantidade de Funcionários</label>
+              <input id="quantidadeFuncionarios" type="number" name="quantidadeFuncionarios" placeholder="0" min="0" />
+            </div>
+          </div>
+
+          <!-- SEÇÃO: CHECKLIST DE AUDITORIA -->
+          <div id="sec-checklist" class="section-header">✅ Checklist de Inspeção</div>
+          <div>
+            <label>Itens de Inspeção</label>
+            <div style="display:flex;gap:8px;align-items:center;margin:6px 0">
+              <div class="small" style="min-width:120px">Estilo de numeração:</div>
+              <select id="checklistStyle" style="padding:6px;border-radius:6px;border:1px solid #e6edf3">
+                <option value="none">Nenhum</option>
+                <option value="numbers">Números</option>
+                <option value="letters">Letras</option>
+              </select>
+              <div class="small" style="min-width:140px;margin-left:8px">Tipo de resposta:</div>
+              <select id="responseMode" disabled style="padding:6px;border-radius:6px;border:1px solid #e6edf3" title="Tipo de resposta fixo para Texto livre">
+                <option value="text" selected>Texto livre (letras e números)</option>
+              </select>
+            </div>
+            <div id="checklist" class="checklist">
+              <!-- entradas dinâmicas -->
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <input id="newItem" type="text" placeholder="Adicionar item da checklist" />
+              <button type="button" id="addItem">Adicionar</button>
+            </div>
+          </div>
+
+          <div style="margin-top:12px">
+            <label for="obs">Observações</label>
+            <textarea id="obs" placeholder="Observações gerais"></textarea>
+          </div>
+
+          <div style="margin-top:8px">
+            <label for="photos">Fotos (opcional)</label>
+            <input id="photos" type="file" accept="image/*" multiple />
+            <div id="photosPreview" class="photo-preview"></div>
+          </div>
+
+          <div style="margin-top:12px" class="actions">
+            <button type="submit">Salvar registro</button>
+            <button type="button" id="exportCsv" class="secondary">Exportar CSV</button>
+            <button type="button" id="print" class="secondary">Imprimir</button>
+            <button type="button" id="clearForm" class="danger">Limpar</button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="card">
+        <canvas id="summaryChart" height="90" style="width:100%;max-width:100%;margin-bottom:8px;max-height:140px"></canvas>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <strong style="display:flex;align-items:center;gap:8px">📑 Registros Salvos <span class="count-badge">0</span></strong>
+          <div style="display:flex;gap:8px">
+            <button id="exportPdf" class="secondary">Exportar PDF</button>
+            <button id="clearAll" class="secondary">Limpar todos</button>
+          </div>
+        </div>
+        <div class="saved-header">
+          <input id="savedSearch" class="search-input" placeholder="Pesquisar registros (auditor, posto, data)..." />
+        </div>
+        <div id="savedList" class="list">
+          <!-- itens salvos aparecem aqui -->
+        </div>
+      </aside>
+    </div>
+
+    <!-- Adicionando a logo -->
+    <img src="fotos/Logo-Argosvig-2-e1745505100362.webp" alt="Logo" class="logo">
+
+    <script>
+      // Helpers
+      const $ = id => document.getElementById(id);
+      const storageKey = 'rondas_registros_v1';
+      const storageSummaryKey = 'rondas_summary_v1';
+
+      // Checklist padrão de auditoria de postos (substituído pelos 9 itens solicitados)
+      const defaultChecklist = [
+        { category: 'Efetivo do Posto (Avaliar pelo Programa de Gestão de Competências e Requisitos do Cliente)', item: 'Efetivo do Posto' },
+        { category: 'Postura e Apresentação (Avaliar o Atendimento, Iniciativa, Comportamento e Condições de Uniforme)', item: 'Postura e Apresentação' },
+        { category: 'Instruções Específicas (Avaliar o conhecimento, cumprimento dos procedimentos e necessidade de revisão)', item: 'Instruções Específicas' },
+        { category: 'Livro de Ocorrências (Avaliar o preenchimento correto, assinaturas e acumulo de livros de mesês anteriores)', item: 'Livro de Ocorrências' },
+        { category: 'Equipamentos do Posto (Avaliar as condições e quantidades de material carga do posto)', item: 'Equipamentos do Posto' },
+        { category: 'Armamento e Colete Balístico (Avaliar as condições, quantidades, licenças e validades das armas e coletes)', item: 'Armamento e Colete Balístico' },
+        { category: 'Carteira Nacional de Vigilante - CNV (Avaliar o porte e validade das CNVs dos Vigilantes)', item: 'Carteira Nacional de Vigilante - CNV' },
+        { category: 'Condições do Posto (Avaliar a necessidade de manutenção predial e defeitos na segurança eletrônica etc)', item: 'Condições do Posto' },
+        { category: 'Treinamento (Avaliar a eficácia do último treinamento obrigatório executado no posto)', item: 'Treinamento' }
+      ];
+
+      function readStorage(){
+        try{return JSON.parse(localStorage.getItem(storageKey) || '[]')}catch(e){return []}
+      }
+      function writeStorage(arr){localStorage.setItem(storageKey, JSON.stringify(arr))}
+
+      function readSummary(){
+        try{return JSON.parse(localStorage.getItem(storageSummaryKey) || 'null')}catch(e){return null}
+      }
+      function writeSummary(obj){localStorage.setItem(storageSummaryKey, JSON.stringify(obj))}
+
+      // Inicialização do formulário
+      function init(){
+        // data padrão = hoje
+        const today = new Date().toISOString().slice(0,10);
+        $('data').value = today;
+
+        // popular checklist
+        const checklistEl = $('checklist');
+        defaultChecklist.forEach(item => addChecklistRow(item.item, item.category));
+
+        // carregar registros salvos
+        renderSavedList();
+
+        // carregar/gerar summary (contagem por turno) para o gráfico
+        const summary = readSummary();
+        if(summary){
+          // se já existe resumo, renderizar o gráfico a partir dele
+          updateChartFromSummary(summary);
+        } else {
+          // calcular a partir dos registros existentes e salvar para uso futuro
+          const list = readStorage();
+          const c = computeChartData(list);
+          const s = { labels: c.labels, counts: c.data };
+          writeSummary(s);
+          updateChartFromSummary(s);
+        }
+      }
+
+      function createStatusControl(value){
+        const mode = $('responseMode') ? $('responseMode').value : 'binary';
+        if(mode === 'numbers'){
+          const sel = document.createElement('select'); sel.className='item-status';
+          for(let i=1;i<=5;i++){ const o = document.createElement('option'); o.value = String(i); o.textContent = String(i); sel.appendChild(o); }
+          if(value) sel.value = value;
+          return sel;
+        }
+        if(mode === 'letters'){
+          const sel = document.createElement('select'); sel.className='item-status';
+          const letters = ['A','B','C','D','E'];
+          letters.forEach(l=>{ const o = document.createElement('option'); o.value=l; o.textContent=l; sel.appendChild(o); });
+          if(value) sel.value = value;
+          return sel;
+        }
+        if(mode === 'text'){
+          const inp = document.createElement('input'); inp.type='text'; inp.className='item-status'; inp.placeholder='Resposta'; inp.style.minWidth='80px';
+          if(value) inp.value = value;
+          return inp;
+        }
+        // default binary
+        const sel = document.createElement('select'); sel.className='item-status';
+        ['OK','Não OK','N/A'].forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; sel.appendChild(o); });
+        if(value) sel.value = value;
+        return sel;
+      }
+
+      function addChecklistRow(text='', checklistName='', statusValue){ 
+        const id = 'chk_' + Math.random().toString(36).slice(2,8);
+        const div = document.createElement('div');
+        div.className = 'checkrow';
+        const nameInput = document.createElement('input');
+        nameInput.type='text'; nameInput.className='item-checklist-name'; nameInput.value = checklistName || ''; nameInput.placeholder='Nome da checklist';
+        nameInput.style = 'width:140px;padding:8px;border-radius:6px;border:1px solid #e6edf3;margin-right:6px';
+        const textInput = document.createElement('input');
+        textInput.type='text'; textInput.className='item-text'; textInput.value = text || ''; textInput.placeholder='Descrição do item';
+        textInput.style = 'flex:1;padding:8px;border-radius:6px;border:1px solid #e6edf3';
+        const statusControl = createStatusControl(statusValue);
+        const btn = document.createElement('button'); btn.type='button'; btn.className='remove-item'; btn.title='Remover'; btn.textContent='✕';
+        btn.addEventListener('click', ()=>div.remove());
+        div.appendChild(nameInput); div.appendChild(textInput); div.appendChild(statusControl); div.appendChild(btn);
+        $('checklist').appendChild(div);
+      }
+
+      function updateAllStatusControls(){
+        const rows = Array.from(document.querySelectorAll('#checklist .checkrow'));
+        rows.forEach((r)=>{
+          const statusOld = r.querySelector('.item-status');
+          const value = statusOld ? statusOld.value : '';
+          const newControl = createStatusControl(value);
+          if(statusOld) statusOld.replaceWith(newControl);
+        });
+      }
+
+      function escapeHtml(str){return String(str).replace(/[&<>\\\"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+      // Fotos preview
+      $('photos').addEventListener('change', function(){
+        const preview = $('photosPreview'); preview.innerHTML='';
+        Array.from(this.files).forEach(file=>{
+          const reader = new FileReader();
+          reader.onload = e=>{
+            const img = document.createElement('img'); img.src = e.target.result; preview.appendChild(img);
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      // endpoint do servidor (ajuste se necessário)
+      const serverEndpoint = 'http://localhost:3000/api/rondas';
+
+      async function sendToServer(registro){
+        if(!serverEndpoint) return Promise.resolve();
+        try{
+          const resp = await fetch(serverEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(registro),
+            keepalive: true
+          });
+          if(!resp.ok) throw new Error('server error');
+          const data = await resp.json();
+          console.log('Enviado para servidor, id:', data.id);
+          return data;
+        }catch(err){
+          console.warn('Não foi possível enviar ao servidor:', err.message);
+          return Promise.reject(err);
+        }
+      }
+
+      // adicionar item
+      $('addItem').addEventListener('click', ()=>{
+        const val = $('newItem').value.trim();
+        if(!val) return alert('Digite o texto do item');
+        addChecklistRow(val);
+        $('newItem').value='';
+      });
+
+      // quando o modo de resposta mudar, atualizar controles existentes
+      $('responseMode').addEventListener('change', ()=>{
+        updateAllStatusControls();
+      });
+
+      // salvar registro
+      $('rondaForm').addEventListener('submit', async (ev)=>{
+        ev.preventDefault();
+        const data = $('data').value;
+        const horaInicio = $('horaInicio').value;
+        const horaFim = $('horaFim').value;
+        const turno = $('turno').value;
+        const auditor = $('auditor').value.trim();
+        const matricula = $('matricula').value.trim();
+        const nomePosto = $('nomePosto').value.trim();
+        const codigoPosto = $('codigoPosto').value.trim();
+        const endereco = $('endereco').value.trim();
+        const bairro = $('bairro').value.trim();
+        const cidade = $('cidade').value.trim();
+        const estado = $('estado').value;
+        const responsavelPosto = $('responsavelPosto').value.trim();
+        const contatoResponsavel = $('contatoResponsavel').value.trim();
+        const supervisorArea = $('supervisorArea').value.trim();
+        const quantidadeFuncionarios = $('quantidadeFuncionarios').value;
+        const obs = $('obs').value.trim();
+
+        const checklist = Array.from(document.querySelectorAll('#checklist .checkrow')).map((r,i)=>({
+          checklistName: r.querySelector('.item-checklist-name') ? r.querySelector('.item-checklist-name').value.trim() : '',
+          text: r.querySelector('.item-text').value.trim(),
+          status: r.querySelector('.item-status') ? r.querySelector('.item-status').value : ''
+        }));
+
+        // fotos: converter para dataURL (atenção em imagens grandes)
+        const files = Array.from($('photos').files);
+        const photos = await Promise.all(files.map(f=>fileToDataURL(f)));
+
+        const registro = {
+          id: Date.now(),
+          data,
+          horaInicio,
+          horaFim,
+          turno,
+          auditor,
+          matricula,
+          posto: {
+            nome: nomePosto,
+            codigo: codigoPosto,
+            endereco,
+            bairro,
+            cidade,
+            estado,
+            responsavel: responsavelPosto,
+            contato: contatoResponsavel,
+            supervisor: supervisorArea,
+            quantidadeFuncionarios
+          },
+          obs,
+          checklist,
+          photos,
+          checklistStyle: $('checklistStyle') ? $('checklistStyle').value : 'none'
+        };
+
+        const arr = readStorage(); arr.unshift(registro); writeStorage(arr);
+        // atualizar summary incremental para evitar reprocessar dados pesados
+        incrementSummaryForTurno(registro.turno, 1);
+        // tentar enviar ao servidor (não bloqueia a interface)
+        sendToServer(registro).catch(()=>{});
+        renderSavedList();
+        alert('Registro salvo localmente');
+        $('rondaForm').reset();
+        init();
+      });
+
+      function fileToDataURL(file){
+        return new Promise(resolve=>{
+          const reader = new FileReader(); reader.onload = e=>resolve(e.target.result);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      // Render lista de salvos
+      function renderSavedList(listParam){
+        const list = listParam || readStorage();
+        const el = $('savedList'); el.innerHTML='';
+        if(list.length===0){ el.innerHTML = '<div class="small">Nenhum registro salvo</div>'; return }
+        list.forEach(item=>{
+          const div = document.createElement('div'); div.className='item';
+          const left = document.createElement('div');
+                // Mostrar apenas o texto dos itens (sem o "Nome da checklist") na prévia
+                const checklistItems = (item.checklist||[]).map(c=>c.text).filter(Boolean);
+                let previewTitles = '';
+                if(checklistItems.length>0){
+                  const previewArr = checklistItems.slice(0,3);
+                  previewTitles = previewArr.join(' • ');
+                  if(checklistItems.length>3) previewTitles += ` (+${checklistItems.length-3})`;
+                }
+                const postoNome = item.posto?.nome || item.local || 'Sem identificação';
+                left.innerHTML = `<div><strong>${item.data} — ${item.turno}</strong></div><div class="small">${item.auditor || ''} • ${escapeHtml(postoNome)}</div>` + (previewTitles? `<div class="small">${escapeHtml(previewTitles)}</div>` : '');
+          const right = document.createElement('div');
+          right.style.display='flex'; right.style.gap='6px';
+          const btnView = document.createElement('button'); btnView.textContent='Ver'; btnView.className='secondary';
+          btnView.addEventListener('click', ()=>viewRegistro(item.id));
+          const btnDel = document.createElement('button'); btnDel.textContent='Excluir'; btnDel.className='danger';
+          btnDel.addEventListener('click', ()=>{ if(confirm('Excluir este registro?')) deleteRegistro(item.id); });
+          const btnExport = document.createElement('button'); btnExport.textContent='Exportar PDF';
+          btnExport.addEventListener('click', ()=>{ exportRegistroPdf(item); if(window.showToast) showToast('Exportado registro (PDF)', 'success'); else alert('Exportado registro (PDF)'); });
+          right.appendChild(btnView); right.appendChild(btnExport); right.appendChild(btnDel);
+          div.appendChild(left); div.appendChild(right);
+          el.appendChild(div);
+        });
+        updateChart(list);
+      }
+
+      // Gráfico resumo (Registros por Turno)
+      let summaryChart = null;
+      function computeChartData(list){
+        const labels = ['Dia','Noite'];
+        const counts = { 'Dia':0, 'Noite':0 };
+        (list||[]).forEach(r=>{ if(counts[r.turno]!==undefined) counts[r.turno]++; });
+        return { labels, data: labels.map(l=>counts[l]) };
+      }
+
+      function createChartIfNeeded(){
+        const ctx = $('summaryChart').getContext('2d');
+        if(summaryChart) return summaryChart;
+        summaryChart = new Chart(ctx, {
+          type: 'bar',
+          data: { labels: [], datasets: [{ label: 'Registros', data: [], backgroundColor: ['#60a5fa','#34d399','#f97316'] }] },
+          options: {
+            responsive:true,
+            maintainAspectRatio:true,
+            animation:false,
+            scales:{ y:{ beginAtZero:true, precision:0, ticks:{ stepSize:1 } } },
+            plugins:{ legend:{ display:false }, tooltip:{ enabled:true } },
+            datasets:{ bar:{ maxBarThickness:48 } }
+          }
+        });
+        return summaryChart;
+      }
+
+      let chartUpdateTimer = null;
+      function updateChart(list){
+        // debounce para reduzir repinturas consecutivas
+        if(chartUpdateTimer) clearTimeout(chartUpdateTimer);
+        chartUpdateTimer = setTimeout(()=>{
+          const chart = createChartIfNeeded();
+          const d = computeChartData(list);
+          chart.data.labels = d.labels;
+          chart.data.datasets[0].data = d.data;
+          chart.update();
+        }, 80);
+      }
+
+      function updateChartFromSummary(summary){
+        const chart = createChartIfNeeded();
+        chart.data.labels = summary.labels;
+        chart.data.datasets[0].data = summary.counts;
+        chart.update();
+      }
+
+      function incrementSummaryForTurno(turno, delta){
+        const existing = readSummary();
+        const s = existing || { labels:['Dia','Noite'], counts:[0,0] };
+        const idx = s.labels.indexOf(turno);
+        if(idx>=0){ s.counts[idx] = Math.max(0, (s.counts[idx]||0) + delta); writeSummary(s); updateChartFromSummary(s); }
+      }
+
+      function getPrefix(style, idx){
+        if(!style || style==='none') return '';
+        if(style==='numbers') return `${idx+1}.`;
+        if(style==='letters'){
+          // 0 -> A, 25 -> Z, 26 -> AA (simple conversion)
+          let n = idx;
+          let s = '';
+          while(n >= 0){
+            s = String.fromCharCode(65 + (n % 26)) + s;
+            n = Math.floor(n/26) - 1;
+          }
+          return `${s}.`;
+        }
+        return '';
+      }
+
+            function viewRegistro(id){
+                const arr = readStorage(); const item = arr.find(i=>i.id===id); if(!item) return alert('Registro não encontrado');
+                const win = window.open('','_blank','width=820,height=1100');
+                const style = `
+                  body{font-family: Arial, Helvetica, sans-serif; color:#0b1723; padding:20px}
+                  .form-wrap{max-width:760px;margin:0 auto;background:#fff;border:1px solid #dfe7ee;padding:18px;border-radius:6px}
+                  header{text-align:center;margin-bottom:12px}
+                  header h1{margin:0;font-size:18px}
+                  .meta{margin-top:6px;font-size:13px;color:#374151}
+                  .info-table{width:100%;border-collapse:collapse;margin-top:12px}
+                  .info-table td{padding:6px;border:1px solid #eef3f8;font-size:13px}
+                  .section-title{margin-top:14px;margin-bottom:6px;font-weight:700}
+                  .checklist-table{width:100%;border-collapse:collapse}
+                  .checklist-table th,.checklist-table td{border:1px solid #eef3f8;padding:8px;text-align:left;font-size:13px}
+                  .obs-box{min-height:80px;border:1px solid #eef3f8;padding:8px;border-radius:4px;background:#fbfdff}
+                  .photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+                  .photos img{max-width:220px;max-height:160px;border:1px solid #e6eef8}
+                  .actions{display:flex;justify-content:flex-end;margin-top:12px}
+                  .btn{background:#0b63d1;color:#fff;padding:8px 12px;border-radius:6px;border:none;cursor:pointer}
+                  @media print{ .actions{display:none} body{padding:0} .form-wrap{border:none;border-radius:0;padding:0} }
+                `;
+
+                const checklistHtml = (item.checklist||[]).map((c, idx)=>{
+                  const prefix = getPrefix(item.checklistStyle || 'none', idx);
+                  const namePart = c.checklistName ? `<div style="font-style:italic;color:#374151">${escapeHtml(c.checklistName)}</div>` : '';
+                  const resp = c.status ? escapeHtml(String(c.status)) : '';
+                  return `<tr><td style="width:60px">${escapeHtml(prefix)}</td><td style="width:220px">${namePart}${escapeHtml(c.text)}</td><td style="width:120px">${resp}</td></tr>`;
+                }).join('');
+
+                const photosHtml = (item.photos||[]).map(p=>`<img src="${p}"/>`).join('');
+
+                const postoInfo = item.posto || {};
+                const enderecoCompleto = [postoInfo.endereco, postoInfo.bairro, postoInfo.cidade, postoInfo.estado].filter(Boolean).join(', ');
+                const html = `<!doctype html><html><head><meta charset="utf-8"><title>Auditoria ${item.data}</title><style>${style}</style></head><body>`+
+                  `<div class="form-wrap">`+
+                    `<header><h1>Relatório de Auditoria de Posto</h1><div class="meta">${item.data} — ${item.turno} ${item.horaInicio?'('+ item.horaInicio + (item.horaFim?' - '+item.horaFim:'') +')':''}</div></header>`+
+                    `<div class="section-title">Dados da Auditoria</div>`+
+                    `<table class="info-table"><tr><td><strong>Auditor</strong><div>${escapeHtml(item.auditor||'')}</div></td><td><strong>Matrícula</strong><div>${escapeHtml(item.matricula||'N/A')}</div></td></tr></table>`+
+                    `<div class="section-title">Dados do Posto</div>`+
+                    `<table class="info-table">`+
+                    `<tr><td><strong>Nome do Posto</strong><div>${escapeHtml(postoInfo.nome||item.local||'')}</div></td><td><strong>Código</strong><div>${escapeHtml(postoInfo.codigo||'N/A')}</div></td></tr>`+
+                    `<tr><td colspan="2"><strong>Endereço</strong><div>${escapeHtml(enderecoCompleto||'N/A')}</div></td></tr>`+
+                    `<tr><td><strong>Responsável do Posto</strong><div>${escapeHtml(postoInfo.responsavel||'N/A')}</div></td><td><strong>Contato</strong><div>${escapeHtml(postoInfo.contato||'N/A')}</div></td></tr>`+
+                    `<tr><td><strong>Supervisor</strong><div>${escapeHtml(postoInfo.supervisor||'N/A')}</div></td><td><strong>Qtd. Funcionários</strong><div>${escapeHtml(postoInfo.quantidadeFuncionarios||'N/A')}</div></td></tr>`+
+                    `</table>`+
+                    `<div class="section-title">Checklist</div>`+
+                    `<table class="checklist-table"><thead><tr><th style="width:60px">#</th><th>Item</th><th>Resposta</th></tr></thead><tbody>${checklistHtml}</tbody></table>`+
+                    `<div class="section-title">Observações</div><div class="obs-box">${escapeHtml(item.obs||'')}</div>`+
+                    `<div class="section-title">Fotos</div><div class="photos">${photosHtml}</div>`+
+                    `<div class="actions"><button class="btn" id="printBtn">Salvar / Imprimir PDF</button></div>`+
+                  `</div>`+
+                  `<script>window.addEventListener('load', function(){ const b = document.getElementById('printBtn'); if(b) b.addEventListener('click', function(){ window.print(); }); });<\/script>`+
+                  `</body></html>`;
+
+                win.document.write(html); win.document.close();
+            }
+
+      function deleteRegistro(id){
+        let arr = readStorage();
+        const found = arr.find(i=>i.id===id);
+        arr = arr.filter(i=>i.id!==id);
+        writeStorage(arr);
+        if(found) incrementSummaryForTurno(found.turno, -1);
+        renderSavedList();
+      }
+
+      // Exports
+      // Nota: download JSON antigo removido como fallback — exportar agora é em PDF via jsPDF
+
+      
+
+      function exportAllCsv(){
+        const arr = readStorage();
+        if(arr.length===0) return alert('Nada para exportar');
+        const rows = [];
+        // Cabeçalho
+        rows.push(['id','data','turno','auditor','local','obs','checklist']);
+        arr.forEach(r=>{
+          const chk = r.checklist.map(c=>`${c.text}:${c.status}`).join('|');
+          rows.push([r.id,r.data,r.turno,r.auditor,r.local, (r.obs||'').replace(/\n/g,' '), chk]);
+        });
+        const csv = rows.map(r=>r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+        const dataStr = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+        const a = document.createElement('a'); a.setAttribute('href', dataStr); a.setAttribute('download', 'rondas.csv'); document.body.appendChild(a); a.click(); a.remove();
+      }
+
+      // buttons
+      $('exportCsv').addEventListener('click', ()=>exportAllCsv());
+      $('print').addEventListener('click', ()=>window.print());
+      $('clearForm').addEventListener('click', ()=>{ if(confirm('Limpar formulário?')){$('rondaForm').reset(); init(); $('photosPreview').innerHTML='';} });
+      $('clearAll').addEventListener('click', ()=>{ if(confirm('Excluir todos os registros?')){ localStorage.removeItem(storageKey); localStorage.removeItem(storageSummaryKey); renderSavedList(); const empty = { labels:['Dia','Noite'], counts:[0,0] }; writeSummary(empty); updateChartFromSummary(empty); } });
+
+      // Renderizar registros na mesma página
+      document.addEventListener('DOMContentLoaded', () => {
+        const list = readStorage();
+        renderSavedList(list);
+
+        const searchInput = document.getElementById('savedSearch');
+        searchInput.addEventListener('input', (e) => {
+          const query = e.target.value.toLowerCase();
+          const filtered = list.filter(item => {
+            return (
+              item.auditor?.toLowerCase().includes(query) ||
+              item.posto?.nome?.toLowerCase().includes(query) ||
+              item.data?.includes(query)
+            );
+          });
+          renderSavedList(filtered);
+        });
+
+        // exportPdf handler moved to `postos.js` (exportAllPdf)
+      });
+
+      // inicializa
+      init();
+    </script>
+    <script src="postos.js"></script>
+  </body>
+</html>

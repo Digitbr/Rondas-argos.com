@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registros e Gráfico</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="ronda.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      font-family: Inter, Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #f4f6f8;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      background: hsl(0, 0%, 100%);
+      border-radius: 80px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 60px;
+      margin-bottom: 60px;
+      height: 200px;
+      width: 50%;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+    }
+    #savedList .item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px;
+      border-bottom: 1px solid #e6edf3;
+    }
+    #savedList .item:last-child {
+      border-bottom: none;
+    }
+    .card2 {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 16px;
+      margin-bottom: 16px;
+        width: 60%;
+        min-height: auto;
+    }  
+      .logo {
+      position: absolute;
+      top: 70px;
+      left: 10px;
+      max-width: 120px;
+      height: auto;
+      z-index: 20;
+    }
+  </style>
+</head>
+<body>
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">⛽</div>
+        <div class="title">Argos — Auditorias de Postos</div>
+      </div>
+      <div class="top-actions">
+        <button class="btn-primary" onclick="window.location.href='dashboard.html'">📊 Dashboard</button>
+        <button class="btn-primary" onclick="window.location.href='registros.html'">📋 Registros</button>
+        <button class="btn-ghost" onclick="exportAllPdf()">⬇️ Exportar</button>
+      </div>
+    </div>
+  <div class="container">
+    <h1>📋 Registros Salvos e Gráfico</h1>
+
+    <div class="card">
+      <h2>Gráfico de Turnos</h2>
+      <canvas id="turnosChart" height="60"></canvas>
+    </div>
+
+    <div class="card2">
+      <h2>Lista de Registros</h2>
+      <input id="savedSearch" type="text" placeholder="Pesquisar registros..." style="width: 100%; padding: 8px; margin-bottom: 12px;">
+      <div id="savedList">
+        <!-- Registros serão carregados aqui -->
+      </div>
+    </div>
+
+    <button class="btn-primary" id="exportPdfButton" style="margin-top: 16px;">Exportar Registros em PDF</button>
+  </div>
+
+  <img src="fotos/Logo-Argosvig-2-e1745505100362.webp" alt="Logo" class="logo">
+
+  <script src="postos.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const list = readStorage();
+      renderSavedList(list);
+
+      const searchInput = document.getElementById('savedSearch');
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const filtered = list.filter(item => {
+          return (
+            item.auditor?.toLowerCase().includes(query) ||
+            item.posto?.nome?.toLowerCase().includes(query) ||
+            item.data?.includes(query)
+          );
+        });
+        renderSavedList(filtered);
+      });
+
+      const ctx = document.getElementById('turnosChart').getContext('2d');
+      const summary = readSummary();
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: summary.labels,
+          datasets: [{
+            label: 'Registros por Turno',
+            data: summary.counts,
+            backgroundColor: ['#60a5fa', '#34d399'],
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+
+      // exportPdfButton handler moved to `postos.js` (exportAllPdf)
+    });
+  </script>
+</body>
+</html>
