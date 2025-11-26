@@ -20,14 +20,14 @@
       }
             
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   </head>
   <body>
     <!-- menus laterais removidos: left 'Navegar' e right 'Menu' -->
     <div class="topbar">
       <div class="brand">
-        <div class="logo">⛽</div>
+        <div class="logo"></div>
         <div class="title">Argos — Auditorias de Postos</div>
       </div>
       <div class="top-actions">
@@ -37,7 +37,7 @@
       </div>
     </div>
 
-    <div class="layout">
+    <div class="layout layout--centered">
       <div class="card">
         <header>
           <div>
@@ -218,22 +218,7 @@
         </form>
       </div>
 
-      <aside class="card">
-        <canvas id="summaryChart" height="90" style="width:100%;max-width:100%;margin-bottom:8px;max-height:140px"></canvas>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <strong style="display:flex;align-items:center;gap:8px">📑 Registros Salvos <span class="count-badge">0</span></strong>
-          <div style="display:flex;gap:8px">
-            <button id="exportPdf" class="secondary">Exportar PDF</button>
-            <button id="clearAll" class="secondary">Limpar todos</button>
-          </div>
-        </div>
-        <div class="saved-header">
-          <input id="savedSearch" class="search-input" placeholder="Pesquisar registros (auditor, posto, data)..." />
-        </div>
-        <div id="savedList" class="list">
-          <!-- itens salvos aparecem aqui -->
-        </div>
-      </aside>
+      <!-- aside de Registros Salvos removido conforme solicitado -->
     </div>
 
     <!-- Adicionando a logo -->
@@ -263,10 +248,7 @@
       }
       function writeStorage(arr){localStorage.setItem(storageKey, JSON.stringify(arr))}
 
-      function readSummary(){
-        try{return JSON.parse(localStorage.getItem(storageSummaryKey) || 'null')}catch(e){return null}
-      }
-      function writeSummary(obj){localStorage.setItem(storageSummaryKey, JSON.stringify(obj))}
+      // summary (gráfico) removido — funções relacionadas excluídas
 
       // Inicialização do formulário
       function init(){
@@ -278,22 +260,8 @@
         const checklistEl = $('checklist');
         defaultChecklist.forEach(item => addChecklistRow(item.item, item.category));
 
-        // carregar registros salvos
-        renderSavedList();
-
-        // carregar/gerar summary (contagem por turno) para o gráfico
-        const summary = readSummary();
-        if(summary){
-          // se já existe resumo, renderizar o gráfico a partir dele
-          updateChartFromSummary(summary);
-        } else {
-          // calcular a partir dos registros existentes e salvar para uso futuro
-          const list = readStorage();
-          const c = computeChartData(list);
-          const s = { labels: c.labels, counts: c.data };
-          writeSummary(s);
-          updateChartFromSummary(s);
-        }
+          // carregar registros salvos
+          renderSavedList();
       }
 
       function createStatusControl(value){
@@ -504,62 +472,9 @@
           div.appendChild(left); div.appendChild(right);
           el.appendChild(div);
         });
-        updateChart(list);
       }
 
-      // Gráfico resumo (Registros por Turno)
-      let summaryChart = null;
-      function computeChartData(list){
-        const labels = ['Dia','Noite'];
-        const counts = { 'Dia':0, 'Noite':0 };
-        (list||[]).forEach(r=>{ if(counts[r.turno]!==undefined) counts[r.turno]++; });
-        return { labels, data: labels.map(l=>counts[l]) };
-      }
-
-      function createChartIfNeeded(){
-        const ctx = $('summaryChart').getContext('2d');
-        if(summaryChart) return summaryChart;
-        summaryChart = new Chart(ctx, {
-          type: 'bar',
-          data: { labels: [], datasets: [{ label: 'Registros', data: [], backgroundColor: ['#60a5fa','#34d399','#f97316'] }] },
-          options: {
-            responsive:true,
-            maintainAspectRatio:true,
-            animation:false,
-            scales:{ y:{ beginAtZero:true, precision:0, ticks:{ stepSize:1 } } },
-            plugins:{ legend:{ display:false }, tooltip:{ enabled:true } },
-            datasets:{ bar:{ maxBarThickness:48 } }
-          }
-        });
-        return summaryChart;
-      }
-
-      let chartUpdateTimer = null;
-      function updateChart(list){
-        // debounce para reduzir repinturas consecutivas
-        if(chartUpdateTimer) clearTimeout(chartUpdateTimer);
-        chartUpdateTimer = setTimeout(()=>{
-          const chart = createChartIfNeeded();
-          const d = computeChartData(list);
-          chart.data.labels = d.labels;
-          chart.data.datasets[0].data = d.data;
-          chart.update();
-        }, 80);
-      }
-
-      function updateChartFromSummary(summary){
-        const chart = createChartIfNeeded();
-        chart.data.labels = summary.labels;
-        chart.data.datasets[0].data = summary.counts;
-        chart.update();
-      }
-
-      function incrementSummaryForTurno(turno, delta){
-        const existing = readSummary();
-        const s = existing || { labels:['Dia','Noite'], counts:[0,0] };
-        const idx = s.labels.indexOf(turno);
-        if(idx>=0){ s.counts[idx] = Math.max(0, (s.counts[idx]||0) + delta); writeSummary(s); updateChartFromSummary(s); }
-      }
+      // Funções do gráfico removidas porque a exibição foi retirada desta página
 
       function getPrefix(style, idx){
         if(!style || style==='none') return '';

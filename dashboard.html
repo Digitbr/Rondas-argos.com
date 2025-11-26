@@ -62,8 +62,9 @@
   <div class="container">
     <div class="card">
       <div class="controls">
-        <button id="backBtn">← Voltar</button>
-        <button id="refresh">Atualizar</button>
+          <button id="backBtn">← Voltar</button>
+          <button id="refresh">Atualizar</button>
+          <button id="toggleRealtime">Iniciar tempo real</button>
         <button id="exportPdf">Exportar PDF</button>
         <button id="exportLocations">Exportar Localizações (JSON)</button>
         <button id="exportLocationsCsv">Exportar Localizações (CSV)</button>
@@ -92,10 +93,15 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="postos.js"></script>
   <script>
     const storageKey = 'rondas_registros_v1';
+    // Centro aproximado do Espírito Santo
+    const ES_CENTER = [-19.3, -40.3];
+    const ES_BOUNDS = L.latLngBounds(L.latLng(-21.5, -41.9), L.latLng(-18.0, -39.0));
+    let realtimeInterval = null;
 
     function readStorage(){ try { return JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch { return []; }}
 
@@ -139,12 +145,16 @@
     function makeColorFromString(str){ let h=0; for(let i=0;i<str.length;i++){ h = str.charCodeAt(i) + ((h<<5)-h);} const c = (h & 0x00FFFFFF).toString(16).toUpperCase(); return '#'+('00000'.substring(0,6-c.length)+c); }
 
     function renderMap(records){
-      // Limitar e focar no Espírito Santo (bounding box aproximado)
-      const ES_BOUNDS = L.latLngBounds(L.latLng(-21.5, -41.9), L.latLng(-18.0, -39.0));
-      const ES_CENTER = [-19.3, -40.3];
-
-      const map = L.map('map', { maxBounds: ES_BOUNDS, minZoom: 6, maxZoom: 13, maxBoundsViscosity: 0.8 }).setView(ES_CENTER, 7);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
+      // Reutiliza mapa existente para evitar recriações, e adiciona heatmap
+      if(!window.leafletMap){
+        window.leafletMap = L.map('map', { maxBounds: ES_BOUNDS, minZoom: 6, maxZoom: 13, maxBoundsViscosity: 0.8 }).setView(ES_CENTER, 7);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'}).addTo(window.leafletMap);
+        window.mapLayerGroup = L.layerGroup().addTo(window.leafletMap);
+        window.heatLayer = null;
+      } else {
+        window.mapLayerGroup.clearLayers();
+        if(window.heatLayer){ try{ window.leafletMap.removeLayer(window.heatLayer);}catch(e){} window.heatLayer = null; }
+      }
 
       const groups = {};
       records.forEach(r => {
@@ -154,28 +164,34 @@
         groups[s].push(r);
       });
 
+      const allCoords = [];
       Object.keys(groups).forEach(supervisor=>{
         const items = groups[supervisor].sort((a,b)=> (a.geo?.ts||0)-(b.geo?.ts||0));
         const color = makeColorFromString(supervisor).slice(0,7);
         const latlngs = [];
         items.forEach(it=>{
-          // ignorar pontos sem coordenada ou fora do ES
           if (!it.geo) return;
           const lat = it.geo.lat, lng = it.geo.lng;
           if (!ES_BOUNDS.contains([lat, lng])) return;
-          const marker = L.circleMarker([lat, lng], { radius:8, color: color, fillColor: color, fillOpacity:0.9 }).addTo(map);
+          const marker = L.circleMarker([lat, lng], { radius:8, color: color, fillColor: color, fillOpacity:0.9 });
+          marker.addTo(window.mapLayerGroup);
           const when = new Date(it.geo.ts).toLocaleString();
           const posto = it.posto?.nome || 'Sem identificação';
           marker.bindPopup(`<strong>${escapeHtml(supervisor)}</strong><br/>Posto: ${escapeHtml(posto)}<br/>Data: ${escapeHtml(it.data||'')} ${escapeHtml(it.horaInicio||'')}<br/>Horário captura: ${when}`);
           latlngs.push([lat, lng]);
+          allCoords.push([lat, lng]);
         });
-        if(latlngs.length>1){ L.polyline(latlngs, { color: color, weight:3, opacity:0.8 }).addTo(map); }
+        if(latlngs.length>1){ L.polyline(latlngs, { color: color, weight:3, opacity:0.8 }).addTo(window.mapLayerGroup); }
       });
 
-      // ajustar bounds para os pontos válidos; se nenhum, centralizar no ES
-      const allCoords = records.filter(r=>r.geo && ES_BOUNDS.contains([r.geo.lat, r.geo.lng])).map(r=>[r.geo.lat, r.geo.lng]);
-      if(allCoords.length>0) map.fitBounds(allCoords, { padding:[40,40], maxZoom: 12 });
-      else map.setView(ES_CENTER, 7);
+      // heatmap
+      if(allCoords.length>0){
+        const heatPoints = allCoords.map(c=>[c[0], c[1], 0.6]);
+        try{ window.heatLayer = L.heatLayer(heatPoints, { radius: 25, blur: 15, maxZoom: 12, gradient: { 0.4: '#30aaff', 0.65: '#ffb347', 1: '#ff3333' } }).addTo(window.leafletMap); }catch(e){console.warn('heat failed', e)}
+        try{ window.leafletMap.fitBounds(allCoords, { padding:[40,40], maxZoom: 12 }); }catch(e){ window.leafletMap.setView(ES_CENTER, 7); }
+      } else {
+        window.leafletMap.setView(ES_CENTER, 7);
+      }
     }
 
     function escapeHtml(text){ if(!text) return ''; return String(text).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
@@ -191,6 +207,11 @@
     }
 
     document.getElementById('refresh').addEventListener('click', refresh);
+    document.getElementById('toggleRealtime').addEventListener('click', ()=>{
+      const btn = document.getElementById('toggleRealtime');
+      if(realtimeInterval){ clearInterval(realtimeInterval); realtimeInterval = null; btn.textContent = 'Iniciar tempo real'; }
+      else { realtimeInterval = setInterval(refresh, 7000); btn.textContent = 'Parar tempo real'; }
+    });
     document.getElementById('exportPdf').addEventListener('click', ()=>{ exportAllPdf(); });
 
     // Voltar ao formulário

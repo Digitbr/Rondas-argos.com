@@ -32,6 +32,9 @@
       .layout{
         max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:16px
       }
+      /* Quando usado em páginas com apenas o formulário, centraliza o card principal */
+      .layout--centered{display:flex;justify-content:center}
+      .layout--centered > .card{width:100%;max-width:980px;margin:0 auto}
       .section-header{
         background: linear-gradient(135deg, #0b63d1, #0891b2);
         color: white;

@@ -6,6 +6,7 @@
   <title>Registros e Gráfico</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link href="ronda.css" rel="stylesheet">
+  <link rel="stylesheet" href="postos.js">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
@@ -63,10 +64,11 @@
 <body>
     <div class="topbar">
       <div class="brand">
-        <div class="logo">⛽</div>
+        <div class="logo"></div>
         <div class="title">Argos — Auditorias de Postos</div>
       </div>
       <div class="top-actions">
+        <button class="btn-primary" onclick="window.location.href='rondas argos.html'"><a href="rondas argos.html">📋 Formulario de rondas</a></button>
         <button class="btn-primary" onclick="window.location.href='dashboard.html'">📊 Dashboard</button>
         <button class="btn-primary" onclick="window.location.href='registros.html'">📋 Registros</button>
         <button class="btn-ghost" onclick="exportAllPdf()">⬇️ Exportar</button>
